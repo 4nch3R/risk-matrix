@@ -1,0 +1,10 @@
+function App() {
+  return (
+    <div>
+      <h1>Hello! React is working 🎉</h1>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
