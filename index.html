@@ -4,11 +4,27 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Operational Risk Matrix</title>
+
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 40px;
             max-width: 900px;
+        }
+        h1 {
+            margin-bottom: 5px;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        input {
+            margin: 5px 0;
+            padding: 5px;
+        }
+        button {
+            padding: 7px 12px;
+            margin-right: 10px;
+            cursor: pointer;
         }
         table {
             border-collapse: collapse;
@@ -22,34 +38,34 @@
             padding: 8px;
             text-align: center;
         }
-        .low { background-color: #8fce00; }
-        .medium { background-color: #f1c232; }
-        .high { background-color: #e06666; }
+        .low { background-color: #8fce00; }      /* green */
+        .medium { background-color: #f1c232; }   /* yellow */
+        .high { background-color: #e06666; }     /* red */
     </style>
 </head>
 <body>
 
 <h1>Operational Risk Matrix</h1>
+<p>Probability × Consequence → Color-coded level</p>
 
-<label>
-    Risk Factor: 
-    <input type="text" id="riskFactor" />
-</label>
-<br><br>
+<div class="controls">
+    <label>Risk Factor:<br>
+        <input type="text" id="riskFactor">
+    </label><br>
 
-<label>
-    Probability (1–5):
-    <input type="number" id="prob" min="1" max="5" />
-</label>
-<br><br>
+    <label>Probability (1–5):<br>
+        <input type="number" id="prob" min="1" max="5">
+    </label><br>
 
-<label>
-    Consequence (1–5):
-    <input type="number" id="cons" min="1" max="5" />
-</label>
-<br><br>
+    <label>Consequence (1–5):<br>
+        <input type="number" id="cons" min="1" max="5">
+    </label><br><br>
 
-<button onclick="addRisk()">Add Risk</button>
+    <button onclick="addRisk()">Add Risk</button>
+    <button onclick="clearRisks()">Clear All</button>
+    <button onclick="exportCSV()">Export CSV</button>
+    <button onclick="downloadPDF()">Download PDF</button>
+</div>
 
 <table id="riskTable">
     <thead>
@@ -65,6 +81,22 @@
 </table>
 
 <script>
+// ---------- SAVE & LOAD ----------
+function saveRisks() {
+    let rows = [];
+    document.querySelectorAll("#riskTable tbody tr").forEach(r => {
+        let cells = [...r.children].map(td => td.innerText);
+        rows.push(cells);
+    });
+    localStorage.setItem("riskMatrix", JSON.stringify(rows));
+}
+
+function loadRisks() {
+    let data = JSON.parse(localStorage.getItem("riskMatrix") || "[]");
+    data.forEach(row => insertRow(row[0], row[1], row[2]));
+}
+
+// ---------- ADD RISK ----------
 function addRisk() {
     let factor = document.getElementById("riskFactor").value;
     let prob = parseInt(document.getElementById("prob").value);
@@ -75,22 +107,29 @@ function addRisk() {
         return;
     }
 
+    insertRow(factor, prob, cons);
+    saveRisks();
+
+    document.getElementById("riskFactor").value = "";
+    document.getElementById("prob").value = "";
+    document.getElementById("cons").value = "";
+}
+
+// ---------- INSERT ROW ----------
+function insertRow(factor, prob, cons) {
     let score = prob * cons;
     let level = "";
     let cssClass = "";
 
     if (score <= 6) {
-        level = "Low";
-        cssClass = "low";
+        level = "Low"; cssClass = "low";
     } else if (score <= 14) {
-        level = "Medium";
-        cssClass = "medium";
+        level = "Medium"; cssClass = "medium";
     } else {
-        level = "High";
-        cssClass = "high";
+        level = "High"; cssClass = "high";
     }
 
-    let table = document.getElementById("riskTable").querySelector("tbody");
+    let table = document.querySelector("#riskTable tbody");
     let row = table.insertRow();
 
     row.innerHTML = `
@@ -101,6 +140,52 @@ function addRisk() {
         <td class="${cssClass}">${level}</td>
     `;
 }
+
+// ---------- CLEAR ----------
+function clearRisks() {
+    document.querySelector("#riskTable tbody").innerHTML = "";
+    localStorage.removeItem("riskMatrix");
+}
+
+// ---------- EXPORT CSV ----------
+function exportCSV() {
+    let rows = [["Risk", "Probability", "Consequence", "Score", "Level"]];
+
+    document.querySelectorAll("#riskTable tbody tr").forEach(r => {
+        let values = [...r.children].map(td => td.innerText);
+        rows.push(values);
+    });
+
+    let csv = rows.map(r => r.join(",")).join("\n");
+    let blob = new Blob([csv], { type: "text/csv" });
+    let url = URL.createObjectURL(blob);
+
+    let a = document.createElement("a");
+    a.href = url;
+    a.download = "risk_matrix.csv";
+    a.click();
+}
+
+// ---------- DOWNLOAD PDF ----------
+function downloadPDF() {
+    let content = "Risk Matrix\n\n";
+
+    document.querySelectorAll("#riskTable tbody tr").forEach(r => {
+        let cols = [...r.children].map(td => td.innerText);
+        content += cols.join("    ") + "\n";
+    });
+
+    let blob = new Blob([content], { type: "application/pdf" });
+    let url = URL.createObjectURL(blob);
+
+    let a = document.createElement("a");
+    a.href = url;
+    a.download = "risk_matrix.pdf";
+    a.click();
+}
+
+// Load saved risks on startup
+loadRisks();
 </script>
 
 </body>
