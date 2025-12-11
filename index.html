@@ -1,22 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My React App</title>
-
-  <!-- Load React + ReactDOM from CDN -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-
-  <!-- Load Babel so the browser understands JSX -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Operational Risk Matrix</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            max-width: 900px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #555;
+        }
+        th, td {
+            padding: 8px;
+            text-align: center;
+        }
+        .low { background-color: #8fce00; }
+        .medium { background-color: #f1c232; }
+        .high { background-color: #e06666; }
+    </style>
 </head>
 <body>
-  <!-- Your app will appear here -->
-  <div id="root"></div>
 
-  <!-- Your React code -->
-  <script type="text/babel" src="app.js"></script>
+<h1>Operational Risk Matrix</h1>
+
+<label>
+    Risk Factor: 
+    <input type="text" id="riskFactor" />
+</label>
+<br><br>
+
+<label>
+    Probability (1–5):
+    <input type="number" id="prob" min="1" max="5" />
+</label>
+<br><br>
+
+<label>
+    Consequence (1–5):
+    <input type="number" id="cons" min="1" max="5" />
+</label>
+<br><br>
+
+<button onclick="addRisk()">Add Risk</button>
+
+<table id="riskTable">
+    <thead>
+        <tr>
+            <th>Risk</th>
+            <th>Probability</th>
+            <th>Consequence</th>
+            <th>Score</th>
+            <th>Level</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+function addRisk() {
+    let factor = document.getElementById("riskFactor").value;
+    let prob = parseInt(document.getElementById("prob").value);
+    let cons = parseInt(document.getElementById("cons").value);
+
+    if (!factor || isNaN(prob) || isNaN(cons)) {
+        alert("Please fill all fields.");
+        return;
+    }
+
+    let score = prob * cons;
+    let level = "";
+    let cssClass = "";
+
+    if (score <= 6) {
+        level = "Low";
+        cssClass = "low";
+    } else if (score <= 14) {
+        level = "Medium";
+        cssClass = "medium";
+    } else {
+        level = "High";
+        cssClass = "high";
+    }
+
+    let table = document.getElementById("riskTable").querySelector("tbody");
+    let row = table.insertRow();
+
+    row.innerHTML = `
+        <td>${factor}</td>
+        <td>${prob}</td>
+        <td>${cons}</td>
+        <td>${score}</td>
+        <td class="${cssClass}">${level}</td>
+    `;
+}
+</script>
+
 </body>
 </html>
