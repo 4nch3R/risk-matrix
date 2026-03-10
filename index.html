@@ -1,192 +1,298 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Operational Risk Matrix</title>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
-            max-width: 900px;
-        }
-        h1 {
-            margin-bottom: 5px;
-        }
-        .controls {
-            margin-bottom: 20px;
-        }
-        input {
-            margin: 5px 0;
-            padding: 5px;
-        }
-        button {
-            padding: 7px 12px;
-            margin-right: 10px;
-            cursor: pointer;
-        }
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 20px;
-        }
-        table, th, td {
-            border: 1px solid #555;
-        }
-        th, td {
-            padding: 8px;
-            text-align: center;
-        }
-        .low { background-color: #8fce00; }      /* green */
-        .medium { background-color: #f1c232; }   /* yellow */
-        .high { background-color: #e06666; }     /* red */
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Operational Risk Matrix</title>
+  <meta
+    name="description"
+    content="A modern operational risk matrix tool for evaluating probability, consequence, and risk level."
+  />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-text">
+        <span class="eyebrow">Operational Safety Tool</span>
+        <h1>Operational Risk Matrix</h1>
+        <p>
+          Assess risk by combining probability and consequence. Add entries,
+          review levels instantly, and export the result when needed.
+        </p>
+      </div>
 
-<h1>Operational Risk Matrix</h1>
-<p>Probability × Consequence → Color-coded level</p>
+      <div class="hero-card">
+        <div class="hero-card-label">Risk Formula</div>
+        <div class="hero-card-value">Probability × Consequence</div>
+        <div class="hero-card-subtext">Low / Medium / High classification</div>
+      </div>
+    </header>
 
-<div class="controls">
-    <label>Risk Factor:<br>
-        <input type="text" id="riskFactor">
-    </label><br>
+    <main class="dashboard">
+      <section class="panel form-panel">
+        <div class="panel-header">
+          <h2>Add New Risk</h2>
+          <p>Fill in the fields below to evaluate and store a risk item.</p>
+        </div>
 
-    <label>Probability (1–5):<br>
-        <input type="number" id="prob" min="1" max="5">
-    </label><br>
+        <div class="form-grid">
+          <div class="input-group input-group-full">
+            <label for="riskFactor">Risk Factor</label>
+            <input
+              type="text"
+              id="riskFactor"
+              placeholder="e.g. Poor weather conditions"
+            />
+          </div>
 
-    <label>Consequence (1–5):<br>
-        <input type="number" id="cons" min="1" max="5">
-    </label><br><br>
+          <div class="input-group">
+            <label for="prob">Probability</label>
+            <input
+              type="number"
+              id="prob"
+              min="1"
+              max="5"
+              placeholder="1–5"
+            />
+          </div>
 
-    <button onclick="addRisk()">Add Risk</button>
-    <button onclick="clearRisks()">Clear All</button>
-    <button onclick="exportCSV()">Export CSV</button>
-    <button onclick="downloadPDF()">Download PDF</button>
-</div>
+          <div class="input-group">
+            <label for="cons">Consequence</label>
+            <input
+              type="number"
+              id="cons"
+              min="1"
+              max="5"
+              placeholder="1–5"
+            />
+          </div>
+        </div>
 
-<table id="riskTable">
-    <thead>
-        <tr>
-            <th>Risk</th>
-            <th>Probability</th>
-            <th>Consequence</th>
-            <th>Score</th>
-            <th>Level</th>
-        </tr>
-    </thead>
-    <tbody></tbody>
-</table>
+        <div class="button-row">
+          <button class="btn btn-primary" onclick="addRisk()">Add Risk</button>
+          <button class="btn btn-secondary" onclick="clearRisks()">Clear All</button>
+          <button class="btn btn-secondary" onclick="exportCSV()">Export CSV</button>
+          <button class="btn btn-secondary" onclick="downloadPDF()">Download PDF</button>
+        </div>
+      </section>
 
-<script>
-// ---------- SAVE & LOAD ----------
-function saveRisks() {
-    let rows = [];
-    document.querySelectorAll("#riskTable tbody tr").forEach(r => {
-        let cells = [...r.children].map(td => td.innerText);
+      <section class="stats-grid">
+        <article class="stat-card">
+          <span class="stat-label">Total Risks</span>
+          <span class="stat-value" id="totalRisks">0</span>
+        </article>
+
+        <article class="stat-card">
+          <span class="stat-label">Highest Score</span>
+          <span class="stat-value" id="highestScore">0</span>
+        </article>
+
+        <article class="stat-card">
+          <span class="stat-label">High Risks</span>
+          <span class="stat-value" id="highRisks">0</span>
+        </article>
+      </section>
+
+      <section class="panel table-panel">
+        <div class="panel-header">
+          <h2>Risk Register</h2>
+          <p>Your saved risks are stored locally in the browser.</p>
+        </div>
+
+        <div class="table-wrap">
+          <table id="riskTable">
+            <thead>
+              <tr>
+                <th>Risk</th>
+                <th>Probability</th>
+                <th>Consequence</th>
+                <th>Score</th>
+                <th>Level</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+
+          <div id="emptyState" class="empty-state">
+            No risks added yet. Start by entering a risk factor above.
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    function saveRisks() {
+      const rows = [];
+      document.querySelectorAll("#riskTable tbody tr").forEach((row) => {
+        const cells = [...row.children].map((td) => td.innerText);
         rows.push(cells);
-    });
-    localStorage.setItem("riskMatrix", JSON.stringify(rows));
-}
+      });
+      localStorage.setItem("riskMatrix", JSON.stringify(rows));
+      updateDashboard();
+      toggleEmptyState();
+    }
 
-function loadRisks() {
-    let data = JSON.parse(localStorage.getItem("riskMatrix") || "[]");
-    data.forEach(row => insertRow(row[0], row[1], row[2]));
-}
+    function loadRisks() {
+      const data = JSON.parse(localStorage.getItem("riskMatrix") || "[]");
+      data.forEach((row) => insertRow(row[0], row[1], row[2], false));
+      updateDashboard();
+      toggleEmptyState();
+    }
 
-// ---------- ADD RISK ----------
-function addRisk() {
-    let factor = document.getElementById("riskFactor").value;
-    let prob = parseInt(document.getElementById("prob").value);
-    let cons = parseInt(document.getElementById("cons").value);
+    function addRisk() {
+      const factor = document.getElementById("riskFactor").value.trim();
+      const prob = parseInt(document.getElementById("prob").value, 10);
+      const cons = parseInt(document.getElementById("cons").value, 10);
 
-    if (!factor || isNaN(prob) || isNaN(cons)) {
-        alert("Please fill all fields.");
+      if (!factor || isNaN(prob) || isNaN(cons)) {
+        alert("Please fill in all fields.");
         return;
+      }
+
+      if (prob < 1 || prob > 5 || cons < 1 || cons > 5) {
+        alert("Probability and Consequence must be between 1 and 5.");
+        return;
+      }
+
+      insertRow(factor, prob, cons, true);
+
+      document.getElementById("riskFactor").value = "";
+      document.getElementById("prob").value = "";
+      document.getElementById("cons").value = "";
+      document.getElementById("riskFactor").focus();
     }
 
-    insertRow(factor, prob, cons);
-    saveRisks();
+    function insertRow(factor, prob, cons, shouldSave = true) {
+      const score = Number(prob) * Number(cons);
+      let level = "";
+      let levelClass = "";
+      let scoreClass = "";
 
-    document.getElementById("riskFactor").value = "";
-    document.getElementById("prob").value = "";
-    document.getElementById("cons").value = "";
-}
+      if (score <= 6) {
+        level = "Low";
+        levelClass = "level-low";
+        scoreClass = "score-low";
+      } else if (score <= 14) {
+        level = "Medium";
+        levelClass = "level-medium";
+        scoreClass = "score-medium";
+      } else {
+        level = "High";
+        levelClass = "level-high";
+        scoreClass = "score-high";
+      }
 
-// ---------- INSERT ROW ----------
-function insertRow(factor, prob, cons) {
-    let score = prob * cons;
-    let level = "";
-    let cssClass = "";
+      const tbody = document.querySelector("#riskTable tbody");
+      const row = tbody.insertRow();
 
-    if (score <= 6) {
-        level = "Low"; cssClass = "low";
-    } else if (score <= 14) {
-        level = "Medium"; cssClass = "medium";
-    } else {
-        level = "High"; cssClass = "high";
-    }
-
-    let table = document.querySelector("#riskTable tbody");
-    let row = table.insertRow();
-
-    row.innerHTML = `
-        <td>${factor}</td>
+      row.innerHTML = `
+        <td class="risk-name">${escapeHTML(factor)}</td>
         <td>${prob}</td>
         <td>${cons}</td>
-        <td>${score}</td>
-        <td class="${cssClass}">${level}</td>
-    `;
-}
+        <td><span class="score-pill ${scoreClass}">${score}</span></td>
+        <td><span class="level-pill ${levelClass}">${level}</span></td>
+      `;
 
-// ---------- CLEAR ----------
-function clearRisks() {
-    document.querySelector("#riskTable tbody").innerHTML = "";
-    localStorage.removeItem("riskMatrix");
-}
+      if (shouldSave) {
+        saveRisks();
+      }
+    }
 
-// ---------- EXPORT CSV ----------
-function exportCSV() {
-    let rows = [["Risk", "Probability", "Consequence", "Score", "Level"]];
+    function clearRisks() {
+      document.querySelector("#riskTable tbody").innerHTML = "";
+      localStorage.removeItem("riskMatrix");
+      updateDashboard();
+      toggleEmptyState();
+    }
 
-    document.querySelectorAll("#riskTable tbody tr").forEach(r => {
-        let values = [...r.children].map(td => td.innerText);
+    function exportCSV() {
+      const rows = [["Risk", "Probability", "Consequence", "Score", "Level"]];
+
+      document.querySelectorAll("#riskTable tbody tr").forEach((row) => {
+        const values = [...row.children].map((td) =>
+          td.innerText.replace(/\n/g, " ").trim()
+        );
         rows.push(values);
+      });
+
+      const csv = rows
+        .map((row) =>
+          row
+            .map((value) => `"${String(value).replace(/"/g, '""')}"`)
+            .join(",")
+        )
+        .join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "risk_matrix.csv";
+      a.click();
+
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadPDF() {
+      window.print();
+    }
+
+    function updateDashboard() {
+      const rows = [...document.querySelectorAll("#riskTable tbody tr")];
+      const total = rows.length;
+
+      let highest = 0;
+      let highCount = 0;
+
+      rows.forEach((row) => {
+        const score = Number(row.children[3].innerText.trim());
+        const level = row.children[4].innerText.trim();
+
+        if (score > highest) highest = score;
+        if (level === "High") highCount++;
+      });
+
+      document.getElementById("totalRisks").innerText = total;
+      document.getElementById("highestScore").innerText = highest;
+      document.getElementById("highRisks").innerText = highCount;
+    }
+
+    function toggleEmptyState() {
+      const hasRows = document.querySelectorAll("#riskTable tbody tr").length > 0;
+      document.getElementById("emptyState").style.display = hasRows ? "none" : "block";
+    }
+
+    function escapeHTML(str) {
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        const active = document.activeElement;
+        if (
+          active &&
+          ["riskFactor", "prob", "cons"].includes(active.id)
+        ) {
+          addRisk();
+        }
+      }
     });
 
-    let csv = rows.map(r => r.join(",")).join("\n");
-    let blob = new Blob([csv], { type: "text/csv" });
-    let url = URL.createObjectURL(blob);
-
-    let a = document.createElement("a");
-    a.href = url;
-    a.download = "risk_matrix.csv";
-    a.click();
-}
-
-// ---------- DOWNLOAD PDF ----------
-function downloadPDF() {
-    let content = "Risk Matrix\n\n";
-
-    document.querySelectorAll("#riskTable tbody tr").forEach(r => {
-        let cols = [...r.children].map(td => td.innerText);
-        content += cols.join("    ") + "\n";
-    });
-
-    let blob = new Blob([content], { type: "application/pdf" });
-    let url = URL.createObjectURL(blob);
-
-    let a = document.createElement("a");
-    a.href = url;
-    a.download = "risk_matrix.pdf";
-    a.click();
-}
-
-// Load saved risks on startup
-loadRisks();
-</script>
-
+    loadRisks();
+  </script>
 </body>
 </html>
