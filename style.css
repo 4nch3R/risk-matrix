@@ -210,7 +210,14 @@ input:focus {
   color: white;
   background: linear-gradient(135deg, var(--primary), var(--primary-strong));
 }
+.btn-danger {
+  color: white;
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+}
 
+.btn-danger:hover {
+  background: linear-gradient(135deg, #f87171, #dc2626);
+}
 .btn-secondary {
   color: var(--text);
   background: rgba(255, 255, 255, 0.08);
@@ -639,3 +646,4 @@ tbody tr:hover {
     color: black;
   }
 }
+
