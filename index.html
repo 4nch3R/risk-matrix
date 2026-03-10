@@ -6,7 +6,7 @@
   <title>Operational Risk Matrix</title>
   <meta
     name="description"
-    content="A modern operational risk matrix tool for evaluating probability, consequence, and risk level."
+    content="Operational risk matrix with 5x5 heatmap, local storage, export, and modern responsive design."
   />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -23,8 +23,9 @@
         <span class="eyebrow">Operational Safety Tool</span>
         <h1>Operational Risk Matrix</h1>
         <p>
-          Assess risk by combining probability and consequence. Add entries,
-          review levels instantly, and export the result when needed.
+          Evaluate operational risks using probability and consequence,
+          visualize them in a professional 5×5 heatmap, and keep a simple
+          risk register directly in the browser.
         </p>
       </div>
 
@@ -39,7 +40,7 @@
       <section class="panel form-panel">
         <div class="panel-header">
           <h2>Add New Risk</h2>
-          <p>Fill in the fields below to evaluate and store a risk item.</p>
+          <p>Add a risk item and place it directly into the risk register and heatmap.</p>
         </div>
 
         <div class="form-grid">
@@ -54,24 +55,12 @@
 
           <div class="input-group">
             <label for="prob">Probability</label>
-            <input
-              type="number"
-              id="prob"
-              min="1"
-              max="5"
-              placeholder="1–5"
-            />
+            <input type="number" id="prob" min="1" max="5" placeholder="1–5" />
           </div>
 
           <div class="input-group">
             <label for="cons">Consequence</label>
-            <input
-              type="number"
-              id="cons"
-              min="1"
-              max="5"
-              placeholder="1–5"
-            />
+            <input type="number" id="cons" min="1" max="5" placeholder="1–5" />
           </div>
         </div>
 
@@ -80,6 +69,7 @@
           <button class="btn btn-secondary" onclick="clearRisks()">Clear All</button>
           <button class="btn btn-secondary" onclick="exportCSV()">Export CSV</button>
           <button class="btn btn-secondary" onclick="downloadPDF()">Download PDF</button>
+          <button class="btn btn-secondary" onclick="downloadBAT()">Download BAT</button>
         </div>
       </section>
 
@@ -100,10 +90,54 @@
         </article>
       </section>
 
+      <section class="panel heatmap-panel">
+        <div class="panel-header">
+          <h2>5×5 Risk Heatmap</h2>
+          <p>
+            Consequence runs left to right. Probability runs bottom to top.
+            Numbers inside each cell show how many risks are placed there.
+          </p>
+        </div>
+
+        <div class="heatmap-layout">
+          <div class="axis-label axis-y">Probability</div>
+
+          <div class="heatmap-wrap">
+            <div class="heatmap-top-axis">
+              <span>1</span>
+              <span>2</span>
+              <span>3</span>
+              <span>4</span>
+              <span>5</span>
+            </div>
+
+            <div class="heatmap-body">
+              <div class="heatmap-left-axis">
+                <span>5</span>
+                <span>4</span>
+                <span>3</span>
+                <span>2</span>
+                <span>1</span>
+              </div>
+
+              <div class="heatmap-grid" id="heatmapGrid"></div>
+            </div>
+
+            <div class="axis-label axis-x">Consequence</div>
+          </div>
+        </div>
+
+        <div class="legend">
+          <span class="legend-item"><span class="legend-color low-bg"></span> Low</span>
+          <span class="legend-item"><span class="legend-color medium-bg"></span> Medium</span>
+          <span class="legend-item"><span class="legend-color high-bg"></span> High</span>
+        </div>
+      </section>
+
       <section class="panel table-panel">
         <div class="panel-header">
           <h2>Risk Register</h2>
-          <p>Your saved risks are stored locally in the browser.</p>
+          <p>Your risk entries are stored locally in the browser.</p>
         </div>
 
         <div class="table-wrap">
@@ -115,6 +149,7 @@
                 <th>Consequence</th>
                 <th>Score</th>
                 <th>Level</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -129,15 +164,33 @@
   </div>
 
   <script>
+    function getLevel(score) {
+      if (score <= 6) return { label: "Low", className: "level-low", scoreClass: "score-low" };
+      if (score <= 14) return { label: "Medium", className: "level-medium", scoreClass: "score-medium" };
+      return { label: "High", className: "level-high", scoreClass: "score-high" };
+    }
+
+    function escapeHTML(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
     function saveRisks() {
       const rows = [];
       document.querySelectorAll("#riskTable tbody tr").forEach((row) => {
-        const cells = [...row.children].map((td) => td.innerText);
-        rows.push(cells);
+        const factor = row.dataset.factor;
+        const prob = row.dataset.prob;
+        const cons = row.dataset.cons;
+        rows.push([factor, prob, cons]);
       });
       localStorage.setItem("riskMatrix", JSON.stringify(rows));
       updateDashboard();
       toggleEmptyState();
+      renderHeatmap();
     }
 
     function loadRisks() {
@@ -145,6 +198,7 @@
       data.forEach((row) => insertRow(row[0], row[1], row[2], false));
       updateDashboard();
       toggleEmptyState();
+      renderHeatmap();
     }
 
     function addRisk() {
@@ -171,39 +225,36 @@
     }
 
     function insertRow(factor, prob, cons, shouldSave = true) {
-      const score = Number(prob) * Number(cons);
-      let level = "";
-      let levelClass = "";
-      let scoreClass = "";
-
-      if (score <= 6) {
-        level = "Low";
-        levelClass = "level-low";
-        scoreClass = "score-low";
-      } else if (score <= 14) {
-        level = "Medium";
-        levelClass = "level-medium";
-        scoreClass = "score-medium";
-      } else {
-        level = "High";
-        levelClass = "level-high";
-        scoreClass = "score-high";
-      }
+      const p = Number(prob);
+      const c = Number(cons);
+      const score = p * c;
+      const level = getLevel(score);
 
       const tbody = document.querySelector("#riskTable tbody");
       const row = tbody.insertRow();
 
+      row.dataset.factor = factor;
+      row.dataset.prob = p;
+      row.dataset.cons = c;
+
       row.innerHTML = `
         <td class="risk-name">${escapeHTML(factor)}</td>
-        <td>${prob}</td>
-        <td>${cons}</td>
-        <td><span class="score-pill ${scoreClass}">${score}</span></td>
-        <td><span class="level-pill ${levelClass}">${level}</span></td>
+        <td>${p}</td>
+        <td>${c}</td>
+        <td><span class="score-pill ${level.scoreClass}">${score}</span></td>
+        <td><span class="level-pill ${level.className}">${level.label}</span></td>
+        <td>
+          <button class="table-delete-btn" onclick="deleteRisk(this)">Delete</button>
+        </td>
       `;
 
-      if (shouldSave) {
-        saveRisks();
-      }
+      if (shouldSave) saveRisks();
+    }
+
+    function deleteRisk(button) {
+      const row = button.closest("tr");
+      row.remove();
+      saveRisks();
     }
 
     function clearRisks() {
@@ -211,23 +262,24 @@
       localStorage.removeItem("riskMatrix");
       updateDashboard();
       toggleEmptyState();
+      renderHeatmap();
     }
 
     function exportCSV() {
       const rows = [["Risk", "Probability", "Consequence", "Score", "Level"]];
 
       document.querySelectorAll("#riskTable tbody tr").forEach((row) => {
-        const values = [...row.children].map((td) =>
-          td.innerText.replace(/\n/g, " ").trim()
-        );
-        rows.push(values);
+        const factor = row.dataset.factor;
+        const prob = row.dataset.prob;
+        const cons = row.dataset.cons;
+        const score = Number(prob) * Number(cons);
+        const level = getLevel(score).label;
+        rows.push([factor, prob, cons, score, level]);
       });
 
       const csv = rows
         .map((row) =>
-          row
-            .map((value) => `"${String(value).replace(/"/g, '""')}"`)
-            .join(",")
+          row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(",")
         )
         .join("\n");
 
@@ -246,16 +298,58 @@
       window.print();
     }
 
+    function downloadBAT() {
+      let content = "@echo off\n";
+      content += "title Risk Matrix Export\n";
+      content += "echo Operational Risk Matrix\n";
+      content += "echo =======================\n";
+      content += "echo.\n";
+
+      document.querySelectorAll("#riskTable tbody tr").forEach((row) => {
+        const factor = row.dataset.factor;
+        const prob = row.dataset.prob;
+        const cons = row.dataset.cons;
+        const score = Number(prob) * Number(cons);
+        const level = getLevel(score).label;
+
+        content += `echo ${sanitizeForBat(factor)} ^| P:${prob} ^| C:${cons} ^| Score:${score} ^| ${level}\n`;
+      });
+
+      content += "echo.\n";
+      content += "pause\n";
+
+      const blob = new Blob([content], { type: "text/plain;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "risk_matrix.bat";
+      a.click();
+
+      URL.revokeObjectURL(url);
+    }
+
+    function sanitizeForBat(str) {
+      return String(str)
+        .replace(/\^/g, "^^")
+        .replace(/&/g, "^&")
+        .replace(/\|/g, "^|")
+        .replace(/>/g, "^>")
+        .replace(/</g, "^<")
+        .replace(/%/g, "%%");
+    }
+
     function updateDashboard() {
       const rows = [...document.querySelectorAll("#riskTable tbody tr")];
       const total = rows.length;
-
       let highest = 0;
       let highCount = 0;
 
       rows.forEach((row) => {
-        const score = Number(row.children[3].innerText.trim());
-        const level = row.children[4].innerText.trim();
+        const prob = Number(row.dataset.prob);
+        const cons = Number(row.dataset.cons);
+        const score = prob * cons;
+        const level = getLevel(score).label;
 
         if (score > highest) highest = score;
         if (level === "High") highCount++;
@@ -271,22 +365,43 @@
       document.getElementById("emptyState").style.display = hasRows ? "none" : "block";
     }
 
-    function escapeHTML(str) {
-      return str
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+    function renderHeatmap() {
+      const grid = document.getElementById("heatmapGrid");
+      grid.innerHTML = "";
+
+      const counts = {};
+
+      document.querySelectorAll("#riskTable tbody tr").forEach((row) => {
+        const prob = Number(row.dataset.prob);
+        const cons = Number(row.dataset.cons);
+        const key = `${prob}-${cons}`;
+        counts[key] = (counts[key] || 0) + 1;
+      });
+
+      for (let prob = 5; prob >= 1; prob--) {
+        for (let cons = 1; cons <= 5; cons++) {
+          const score = prob * cons;
+          const level = getLevel(score);
+          const key = `${prob}-${cons}`;
+          const count = counts[key] || 0;
+
+          const cell = document.createElement("div");
+          cell.className = `heat-cell ${level.className}`;
+          cell.innerHTML = `
+            <div class="heat-score">${score}</div>
+            <div class="heat-coords">P${prob} × C${cons}</div>
+            <div class="heat-count ${count > 0 ? 'active' : ''}">${count > 0 ? count : ""}</div>
+          `;
+          cell.title = `Probability ${prob}, Consequence ${cons}, Score ${score}, Risks: ${count}`;
+          grid.appendChild(cell);
+        }
+      }
     }
 
     document.addEventListener("keydown", function (event) {
       if (event.key === "Enter") {
         const active = document.activeElement;
-        if (
-          active &&
-          ["riskFactor", "prob", "cons"].includes(active.id)
-        ) {
+        if (active && ["riskFactor", "prob", "cons"].includes(active.id)) {
           addRisk();
         }
       }
